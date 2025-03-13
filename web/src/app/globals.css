@@ -1,0 +1,45 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  font-family: 'ClashGrotesk', sans-serif;
+  font-size: 1rem;
+  -webkit-font-smoothing: antialiased;
+  scrollbar-gutter: stable both-edges;
+}
+
+.flex-center {
+  @apply flex items-center justify-center;
+}
+
+.font-app-icon,
+.app-icon p {
+  font-family: 'Saira Stencil One';
+}
+
+.font-secondary {
+  font-family:
+    IBMPlexMono,
+    Menlo,
+    DejaVu Sans Mono,
+    Lucida Console,
+    monospace;
+}
+
+.font-kanji {
+  font-family: 'YujiMai', 'Noto Sans JP', sans-serif !important;
+  color: var(--clr-brand) !important;
+}
+
+@media (max-width: 1024px) {
+  html {
+    font-size: 14px;
+  }
+}
