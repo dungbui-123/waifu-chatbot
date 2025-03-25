@@ -14,7 +14,6 @@ devinstall:
 	@docker exec -it $(COMPOSE_PROJECT_NAME)-web-1 yarn
 
 devrun:
-	@docker exec -d ${COMPOSE_PROJECT_NAME}-api-1 uv run fastapi dev
 	@docker exec -it $(COMPOSE_PROJECT_NAME)-web-1 yarn dev
 
 devdown:

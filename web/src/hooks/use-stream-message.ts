@@ -1,10 +1,10 @@
 'use client'
 
 import { ChatResponse, SendChatRequest } from '@/@types/chat'
-import { parseMarkdown, removeDuplicateValues } from '@/utils/ array'
 import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import useInvalidateTag from './use-invalidate-tag'
+import { removeDuplicateValues } from '@/utils/array'
 
 type Props = {
   url: string
@@ -46,20 +46,25 @@ export default function useStreamMessage({ url, setMessagesHistory }: Props) {
         if (receivedContent.thread_id && pathname === '/') {
           invalidateTag(['threads'])
           router.push(`/${receivedContent.thread_id}`)
-          return true
         }
 
-        const parsedContent = await parseMarkdown(receivedContent.content)
+        setMessagesHistory((prev) => {
+          const foundedMessage = prev.find((message) => message.id === receivedContent.id)
+          if (foundedMessage)
+            return [
+              ...prev.map((message) => {
+                if (message.id === receivedContent.id) {
+                  return {
+                    ...receivedContent,
+                    content: `${message.content}${receivedContent.content}`
+                  }
+                }
+                return message
+              })
+            ]
 
-        setMessagesHistory((prev) =>
-          removeDuplicateValues([
-            ...prev,
-            {
-              ...receivedContent,
-              content: parsedContent
-            }
-          ])
-        )
+          return removeDuplicateValues([...prev, { ...receivedContent, content: receivedContent.content }])
+        })
       }
 
       return true

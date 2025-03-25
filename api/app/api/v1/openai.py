@@ -1,9 +1,12 @@
+import asyncio
+import json
+import pprint
 from typing import Optional
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 from langchain.prompts.prompt import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.messages import AIMessage, ToolMessage, AIMessageChunk
 
 from app.core.db.database import SessionDep
 from app.core.openai.agents.linkedin_lookup_agent import lookup
@@ -195,3 +198,66 @@ async def get_thread(thread_id: str, session: SessionDep):
 @router.delete("/thread/{thread_id}")
 async def delete_thread(thread_id: str, session: SessionDep):
     return delete_thread_by_id(session=session, thread_id=thread_id)
+
+
+async def streaming_tokens(graph, content, thread_id):
+    config = {"configurable": {"thread_id": thread_id}}
+
+    async for message, metadata in graph.astream(
+        input={"messages": content},
+        config=config,
+        stream_mode="messages",
+    ):
+        pprint.pprint(message)
+        await asyncio.sleep(0.01)
+
+        if isinstance(message, AIMessageChunk):
+            pprint.pprint(message.id)
+
+            if len(message.tool_call_chunks) > 0:
+                for call in message.tool_call_chunks:
+                    if isinstance(call["args"], str):
+                        yield '{{"id":"{id}","content":{content},"type":"{type}","thread_id":"{thread_id}"}}'.format(
+                            id=message.id,
+                            content=json.dumps(call["args"]),
+                            type="tool",
+                            thread_id=thread_id,
+                        )
+                continue
+
+            if (
+                message.response_metadata is not None
+                and "finish_reason" in message.response_metadata
+                and message.response_metadata["finish_reason"] == "tool_calls"
+            ):
+                yield '{{"id":"{id}","content":"{content}","type":"{type}","thread_id":"{thread_id}"}}'.format(
+                    id=message.id + "-tool",
+                    content="Searching...",
+                    type="tool",
+                    thread_id=thread_id,
+                )
+                continue
+
+            yield '{{"id":"{id}","content":{content},"type":"{type}","thread_id":"{thread_id}"}}'.format(
+                id=message.id,
+                content=json.dumps(message.content),
+                type="ai",
+                thread_id=thread_id,
+            )
+
+
+@router.post("/chat/stream/token")
+async def chat_stream_token(request: Request, session: SessionDep, body: ChatRequest):
+    thread_id = body.thread_id
+
+    if body.action == "start":
+        thread_id = generate_thread_id(first_message=body.messages[0], session=session)
+
+    return StreamingResponse(
+        streaming_tokens(
+            graph=request.app.state.chatbot_graph,
+            content=body.messages,
+            thread_id=thread_id,
+        ),
+        media_type="application/json",
+    )

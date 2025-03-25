@@ -1,6 +1,10 @@
+'use client'
+
 import { ChatResponse } from '@/@types/chat'
 import { cn } from '@/lib/utils'
+import { parseMarkdown } from '@/utils/array'
 import { cva } from 'class-variance-authority'
+import { useEffect, useState } from 'react'
 
 type Props = {
   messagesHistory: ChatResponse[]
@@ -20,9 +24,20 @@ const messageBlockVariants = cva('break-word max-w-[80%]', {
 })
 
 function MessageBlock({ message }: { message: ChatResponse }) {
+  const [parsedMessage, setParsedMessage] = useState<string | null>(null)
+
+  const handleParseMessage = async () => {
+    const htmlContent = await parseMarkdown(message.content)
+    setParsedMessage(htmlContent)
+  }
+
+  useEffect(() => {
+    handleParseMessage()
+  }, [message])
+
   return (
     <div className={cn(messageBlockVariants({ type: message.type }))}>
-      <div dangerouslySetInnerHTML={{ __html: message.content }} />
+      <div dangerouslySetInnerHTML={{ __html: parsedMessage ?? message.content }} />
     </div>
   )
 }

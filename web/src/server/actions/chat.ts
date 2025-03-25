@@ -2,7 +2,7 @@
 
 import { ChatResponse, SendChatRequest } from '@/@types/chat'
 import fetchBase from '@/lib/fetch-base'
-import { parseMarkdown } from '@/utils/ array'
+import { parseMarkdown } from '@/utils/array'
 
 export const sendChat = async (request: SendChatRequest) => {
   const response = await fetchBase<ChatResponse>({
@@ -28,16 +28,5 @@ export const getChatByThreadId = async (threadId: string) => {
     noCache: true
   })
 
-  if (!response) return []
-
-  return await Promise.all(
-    response.map(async (chat) => {
-      const parsedContent = await parseMarkdown(chat.content)
-
-      return {
-        ...chat,
-        content: parsedContent
-      }
-    })
-  )
+  return response
 }

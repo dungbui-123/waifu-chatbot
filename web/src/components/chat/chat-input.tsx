@@ -4,7 +4,7 @@ import React, { useRef, useState } from 'react'
 import { Input } from '../ui/input'
 import { useEventListener } from 'usehooks-ts'
 import { ChatResponse } from '@/@types/chat'
-import { removeDuplicateValues } from '@/utils/ array'
+import { removeDuplicateValues } from '@/utils/array'
 import useStreamMessage from '@/hooks/use-stream-message'
 
 type Props = {
@@ -17,7 +17,7 @@ export default function ChatInput({ currentThreadId, messagesHistory, setMessage
   const inputRef = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState<string>('')
   const { handleRequest: sendChat, isLoading } = useStreamMessage({
-    url: 'http://localhost:8000/api/v1/openai/chat/stream',
+    url: `${process.env.NEXT_PUBLIC_API_URL}/openai/chat/stream/token`,
     setMessagesHistory
   })
 

@@ -33,6 +33,7 @@ export default function ChatBox({ currentThreadId, chatHistory }: Props) {
   return (
     <SlideAnimate>
       <div className="flex h-full w-full flex-col">
+        <>{console.log('===> re-render')}</>
         <div className="h-0 shrink grow">
           <ScrollArea className="h-full w-full p-2">
             <MessagesList messagesHistory={messagesHistory} />

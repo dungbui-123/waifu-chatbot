@@ -4,7 +4,7 @@ export interface SendChatRequest {
   action: 'send' | 'start'
 }
 
-export type MessageType = 'human' | 'ai'
+export type MessageType = 'human' | 'ai' | 'tool'
 
 export interface ChatResponse {
   id: string
