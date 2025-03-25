@@ -29,7 +29,7 @@ services:
       - ./api:/app
     labels:
       - traefik.enable=true
-      - traefik.http.routers.${COMPOSE_PROJECT_NAME}-api.rule=Host(`${API_DOMAIN}`) && PathPrefix(`/api`)
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME}-api.rule=Host(`${API_DOMAIN}`)
       - traefik.http.services.${COMPOSE_PROJECT_NAME}-api.loadbalancer.server.port=8000
     environment:
       - TAVILY_API_KEY=${TAVILY_API_KEY:-tavily-secret-api-key}

@@ -1,52 +1,30 @@
 import asyncio
 import json
 import pprint
+import re
 from typing import Optional
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
-from langchain.prompts.prompt import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import AIMessage, ToolMessage, AIMessageChunk
+from langchain_core.prompts import ChatPromptTemplate
+from bs4 import BeautifulSoup
+import requests
 
 from app.core.db.database import SessionDep
-from app.core.openai.agents.linkedin_lookup_agent import lookup
+from app.core.openai.agents.fandom_lookup_agent import (
+    fandom_lookup,
+    generate_prompt_from_character_info,
+)
 from app.core.openai.azure import llm
-from app.crud.crud_thread import delete_thread_by_id, get_thread_by_id, get_threads
 from app.models.chat import ChatRequest, ChatResponse
 from app.utils.random import generate_thread_id
 
 
-router = APIRouter(tags=["openai"], prefix="/openai")
+router = APIRouter(tags=["openai-chatbot"], prefix="/chat")
 
 
-@router.get("/demo")
-async def demo():
-    return llm.invoke("hello")
-
-
-@router.post("/summary")
-async def summary_information(data: str):
-    summary_template = """
-        given the information {information} about a person I want you to create:
-        1. A short summary
-        2. two interesting facts about them
-    """
-
-    summary_prompt_template = PromptTemplate(
-        input_variables=["information"], template=summary_template
-    )
-
-    chain = summary_prompt_template | llm | StrOutputParser()
-
-    return chain.invoke(input={"information": data})
-
-
-@router.post("/search")
-async def search_linkedin_profile(data: str):
-    return lookup(data)
-
-
-@router.post("/chat")
+@router.post("/")
 async def chatbot(request: Request, body: ChatRequest) -> ChatResponse:
     thread_id = body.thread_id
 
@@ -68,7 +46,7 @@ async def chatbot(request: Request, body: ChatRequest) -> ChatResponse:
     )
 
 
-@router.get("/chat/history")
+@router.get("/history")
 async def get_chat_history(
     request: Request, thread_id: Optional[str] = None
 ) -> list[ChatResponse]:
@@ -169,7 +147,7 @@ def streaming_messages(graph, content, thread_id):
                     )
 
 
-@router.post("/chat/stream")
+@router.post("/stream")
 async def chat_stream(request: Request, session: SessionDep, body: ChatRequest):
     thread_id = body.thread_id
 
@@ -183,21 +161,6 @@ async def chat_stream(request: Request, session: SessionDep, body: ChatRequest):
             thread_id=thread_id,
         )
     )
-
-
-@router.get("/thread")
-async def get_thread_list(session: SessionDep):
-    return get_threads(session=session)
-
-
-@router.get("/thread/{thread_id}")
-async def get_thread(thread_id: str, session: SessionDep):
-    return get_thread_by_id(session=session, thread_id=thread_id)
-
-
-@router.delete("/thread/{thread_id}")
-async def delete_thread(thread_id: str, session: SessionDep):
-    return delete_thread_by_id(session=session, thread_id=thread_id)
 
 
 async def streaming_tokens(graph, content, thread_id):
@@ -246,7 +209,7 @@ async def streaming_tokens(graph, content, thread_id):
             )
 
 
-@router.post("/chat/stream/token")
+@router.post("/stream/token")
 async def chat_stream_token(request: Request, session: SessionDep, body: ChatRequest):
     thread_id = body.thread_id
 
@@ -260,4 +223,48 @@ async def chat_stream_token(request: Request, session: SessionDep, body: ChatReq
             thread_id=thread_id,
         ),
         media_type="application/json",
+    )
+
+
+@router.post("/chat/lookup")
+async def chatbot_lookup(request: Request, character_name: str, message: str):
+    # fandom_url = "https://onepiece.fandom.com/wiki/Nami"
+
+    fandom_url = fandom_lookup(character_name)
+
+    print(fandom_url)
+
+    page = requests.get(fandom_url)
+
+    soup = BeautifulSoup(page.content, "html.parser")
+
+    character_image_url = soup.select("div.mw-content-ltr figure a")[0]["href"]
+
+    character_infos = soup.select("div.mw-content-ltr p")
+
+    result = []
+
+    for info in character_infos:
+        # print(info)
+        cleaned_text = (
+            re.sub(r"\[\d+\]", "", info.get_text()).replace("\n", " ").strip()
+        )
+        result.append(cleaned_text)
+
+    # return generate_prompt_from_character_info(result)
+
+    prompt_template = ChatPromptTemplate(
+        [
+            ("system", "{system_prompt}"),
+            ("user", "{message}"),
+        ]
+    )
+
+    chain = prompt_template | llm | StrOutputParser()
+
+    return chain.invoke(
+        input={
+            "system_prompt": generate_prompt_from_character_info(result),
+            "message": message,
+        }
     )

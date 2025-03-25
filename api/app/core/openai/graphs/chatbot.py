@@ -5,7 +5,6 @@ from typing_extensions import TypedDict
 from app.core.db.database import POSTGRES_URI, init_db
 from psycopg_pool import AsyncConnectionPool
 
-
 from langgraph.graph import StateGraph
 from langgraph.graph.message import add_messages
 
@@ -55,6 +54,10 @@ async def lifespan(app: FastAPI):
 
         app.state.chatbot_checkpointer = checkpointer
         graph = graph_builder.compile(checkpointer=checkpointer)
+
+        graph.ainvoke(
+            input={"messages": [{"content": "Hello", "type": "user"}]},
+        )
 
         app.state.chatbot_graph = graph
 
