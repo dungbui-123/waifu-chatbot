@@ -16,10 +16,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <div className="bg-default-bg text-default-text flex h-screen w-screen items-center justify-center overflow-x-hidden overflow-y-auto backdrop-blur-xl">
-          <div className="border-border-1 relative h-full max-h-[932px] w-[430px] border-x border-t border-solid bg-(image:--color-sidebar) backdrop-blur-sm">
-            <Providers>{children}</Providers>
-          </div>
+        <div className="bg-default-bg text-default-text relative flex h-screen w-screen items-center justify-center overflow-x-hidden overflow-y-auto backdrop-blur-xl">
+          <Providers>{children}</Providers>
         </div>
       </body>
     </html>

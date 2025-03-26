@@ -1,7 +1,6 @@
-from logging import config
-from pprint import pprint
 import re
 import uuid
+from app.models.character import CharacterResponse
 from fastapi import APIRouter, Request
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -16,12 +15,11 @@ from app.core.openai.agents.fandom_lookup_agent import (
 from app.core.openai.azure import llm
 from app.crud.crud_character import (
     create_character,
-    get_character_by_name,
+    get_character_by_fandom_url,
     get_character_by_slug,
 )
 from app.models.chat import ChatRequest, ChatResponse
 from app.utils.fandom import extract_character_info
-from app.utils.random import generate_thread_id
 
 
 router = APIRouter(tags=["openai-character-chatbot"], prefix="/character-chatbot")
@@ -72,20 +70,22 @@ async def demo(request: Request, character_name: str, message: str):
 
 
 @router.get("/lookup")
-async def character_lookup(session: SessionDep, character_name: str):
-    # check if character exists in database
-    character = get_character_by_name(session=session, character_name=character_name)
-    if character:
-        return character.system_prompt
+async def character_lookup(
+    session: SessionDep, character_name: str
+) -> CharacterResponse:
+    fandom_url = await fandom_lookup(character_name)
 
-    # if character does not exist in database, fetch from fandom
-    fandom_url = fandom_lookup(character_name)
-    character = extract_character_info(character_name, fandom_url)
+    # check if character exists in database
+    character = get_character_by_fandom_url(session=session, fandom_url=fandom_url)
+    if character:
+        return character
+
+    found_character = extract_character_info(fandom_url)
 
     # save character to database
-    create_character(session=session, character_create=character)
+    character = create_character(session=session, character_create=found_character)
 
-    return character.system_prompt
+    return character
 
 
 @router.get("/{character_slug}/start")
@@ -135,3 +135,15 @@ async def chat_with_character(request: Request, body: ChatRequest) -> ChatRespon
         content=answer_message.content,
         type=answer_message.type,
     )
+
+
+@router.get("/{character_slug}")
+async def get_character_info(
+    session: SessionDep, character_slug: str
+) -> CharacterResponse:
+    character = get_character_by_slug(session=session, character_slug=character_slug)
+
+    if not character:
+        return {"error": "Character not found"}
+
+    return character

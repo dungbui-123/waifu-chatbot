@@ -1,3 +1,4 @@
+from typing import List
 from langchain_community.tools.tavily_search import TavilySearchResults
 
 from langchain_core.tools import Tool
@@ -19,11 +20,11 @@ search_linkedin_profile_tool = Tool(
 search_user_question_tool = TavilySearchResults(max_results=2)
 
 
-def search_fandom_url_tavily(name: str) -> str:
+def search_fandom_url_tavily(name: str) -> List[str]:
     """Searches for Fandom Profile Page."""
-    search = TavilySearchResults()
+    search = TavilySearchResults(max_results=3)
     res = search.run(f"{name} fandom")
-    return res[0]["url"]
+    return [r["url"] for r in res]
 
 
 search_fandom_page_tool = Tool(

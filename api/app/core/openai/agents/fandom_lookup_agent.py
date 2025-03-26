@@ -1,4 +1,5 @@
 import array
+import pprint
 from langchain.prompts.prompt import PromptTemplate
 from langchain.agents import (
     create_react_agent,
@@ -10,9 +11,13 @@ from app.core.openai.tools.search import search_fandom_page_tool
 from ..azure import llm
 
 
-def fandom_lookup(name: str) -> str:
-    template = """given the character {character_name} I want you to get it me a link to their Wiki Fandom page.
-                              Your answer should contain only a URL"""
+async def fandom_lookup(name: str) -> str:
+    template = """
+        given the character {character_name} 
+        I want you to get it me a link to their Wiki Fandom page.
+        Please return the URL to their original Wiki Fandom page. This means the page should correspond to the character's native series or franchise.
+        Your answer should contain only a URL
+    """
 
     prompt_template = PromptTemplate(
         template=template, input_variables=["character_name"]
@@ -29,6 +34,18 @@ def fandom_lookup(name: str) -> str:
 
     fandom_url = result["output"]
     return fandom_url
+
+    # return agent_executor.astream(
+    #     input={"input": prompt_template.format_prompt(character_name=name)}
+    # )
+
+    # async for chunk, _ in agent_executor.astream(
+    #     input={"input": prompt_template.format_prompt(character_name=name)},
+    #     stream_mode="updates",
+    # ):
+    #     pprint.pprint("===> " + chunk)
+
+    # return "https://onepiece.fandom.com/wiki/Nami"
 
 
 def generate_prompt_from_character_info(character_infos: array) -> str:

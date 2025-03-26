@@ -22,6 +22,12 @@ def get_character_by_slug(*, session: Session, character_slug: str) -> Character
     return founded_character
 
 
+def get_character_by_fandom_url(*, session: Session, fandom_url: str) -> Character:
+    statement = select(Character).where(Character.fandom_url == fandom_url)
+    founded_character = session.exec(statement).first()
+    return founded_character
+
+
 def get_characters(*, session: Session) -> list[Character]:
     statement = select(Character).order_by(Character.id)
     founded_characters = session.exec(statement).all()
